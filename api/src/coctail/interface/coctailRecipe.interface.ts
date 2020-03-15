@@ -1,8 +1,8 @@
-export interface CoctailReceiptList {
-  [key: string]: CoctailReceipt;
+export interface CoctailRecipeList {
+  [key: string]: CoctailRecipe;
 }
 
-export interface CoctailReceipt {
+export interface CoctailRecipe {
   name: string;
   ingredients: CoctailIngredients;
   image?: string;

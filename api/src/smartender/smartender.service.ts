@@ -1,26 +1,28 @@
-import { Injectable } from '@nestjs/common';
-import { Gpio } from 'onoff';
+import { Injectable, Logger } from '@nestjs/common';
+// import { Gpio } from 'onoff';
 import { CoctailOptions } from 'src/coctail/interface/coctailOptions.type';
 import {
-  CoctailReceipt,
-  CoctailReceiptList,
-} from 'src/coctail/interface/coctailReceipt.interface';
+  CoctailRecipe,
+  CoctailRecipeList,
+} from 'src/coctail/interface/coctailRecipe.interface';
 import { FLOW_RATE, PIPES, RELAY_OFF, RELAY_ON } from 'src/common/constants';
 import sleep from 'src/common/sleep';
 import { PipeName } from 'src/common/types';
+import { Gpio } from './gpio-mock';
 
 @Injectable()
 export class SmarTender {
   protected run: boolean;
   protected pipes: Map<PipeName, Gpio>;
-  protected receipts: CoctailReceiptList;
+  protected receipts: CoctailRecipeList;
   protected drinkOptions: CoctailOptions;
 
   constructor() {
     this.pipes = new Map<PipeName, Gpio>();
+    this.run = false;
   }
 
-  setup(receipts: CoctailReceiptList, drinkOptions: CoctailOptions) {
+  setup(receipts: CoctailRecipeList, drinkOptions: CoctailOptions) {
     this.receipts = receipts;
     this.drinkOptions = drinkOptions;
   }
@@ -46,17 +48,17 @@ export class SmarTender {
     }
   }
 
-  async flowDrink(pipe: PipeName, ms: number = 0): Promise<void> {
+  protected async flowDrink(pipe: PipeName, ms: number = 0): Promise<void> {
     this.turnOnPipe(pipe);
     await sleep(ms);
     this.turnOffPipe(pipe);
   }
 
-  getPipe(pipe: PipeName): Gpio {
+  protected getPipe(pipe: PipeName): Gpio {
     return this.pipes.get(pipe);
   }
 
-  hasPipe(pipe: PipeName): boolean {
+  protected hasPipe(pipe: PipeName): boolean {
     return this.pipes.has(pipe);
   }
 
@@ -138,7 +140,7 @@ export class SmarTender {
     }
   }
 
-  async mix(drink: CoctailReceipt) {
+  async mix(drink: CoctailRecipe) {
     if (!this.isRunning) {
       this.run = true;
 
@@ -157,6 +159,14 @@ export class SmarTender {
             }
           }
         }
+
+        Promise.all(promises)
+          .then(() => {
+            this.run = false;
+          })
+          .catch(e => {
+            Logger.error(e.message, e);
+          });
       })();
     } else {
       throw new Error(`SmarTender is busy, please wait...`);
